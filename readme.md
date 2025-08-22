@@ -10,7 +10,7 @@
    logfile                    Path to the log file you want to analyze
 
 🔧 OPTIONAL FLAGS:
-   --help                     Show this detailed help message
+   -h, --help                 Show a detailed help message
    --endpoints                Show only endpoint popularity statistics
    --performance              Show only performance metrics (response times)  
    --users                    Show only user statistics and year breakdown
