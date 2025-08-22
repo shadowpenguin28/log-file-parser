@@ -226,18 +226,163 @@ class LogAnalyzer():
                 }
         
         return performance
-analyzer = LogAnalyzer()
-analyzer.parse_log_file('timetable.log')
-print(analyzer.http_requests)
-print(analyzer.router_logs)
-print(analyzer.algorithm_logs)
-print(analyzer.generation_logs)
-print(analyzer.endpoints)
-print(analyzer.response_times)
-print(analyzer.users)
-print(analyzer.users_by_year)
-print(analyzer.algorithms_used)
-print(analyzer.timetables_generated)
-print(analyzer.total_requests)
 
+    def generate_report(self):
+            """Generate comprehensive analysis report"""
+            print("\n" + "="*60)
+            print("         TIMETABLE GENERATOR LOG ANALYSIS REPORT")
+            print("="*60)
+            
+            # Total API requests served
+            print(f"\n📊 TOTAL API REQUESTS SERVED")
+            print(f"   Total HTTP requests: {self.total_requests}")
+            
+            # Count methods and status codes manually
+            method_counts = {}
+            status_counts = {}
+            
+            for req in self.http_requests:
+                method = req['method']
+                status = req['status_code']
+                
+                # Count methods
+                if method in method_counts:
+                    method_counts[method] += 1
+                else:
+                    method_counts[method] = 1
+                
+                # Count status codes
+                if status in status_counts:
+                    status_counts[status] += 1
+                else:
+                    status_counts[status] = 1
+            
+            print(f"   GET requests: {method_counts.get('GET', 0)}")
+            print(f"   POST requests: {method_counts.get('POST', 0)}")
+            
+            # Sort status codes for consistent output
+            sorted_statuses = sorted(status_counts.items())
+            for status, count in sorted_statuses:
+                print(f"   Status {status}: {count} requests")
+            
+            # Endpoint Popularity
+            print(f"\n🎯 ENDPOINT POPULARITY")
+            sorted_endpoints = sorted(self.endpoints.items(), key=lambda x: x[1], reverse=True)
+            for endpoint, count in sorted_endpoints:
+                print(f"   {endpoint:<20} {count:>4} requests")
+            
+            # Performance Metrics
+            print(f"\n⚡ PERFORMANCE METRICS")
+            performance = self.analyze_performance()
+            
+            for endpoint in sorted(performance.keys()):
+                metrics = performance[endpoint]
+                avg_ms = metrics['avg_response_time_us'] / 1000
+                max_ms = metrics['max_response_time_us'] / 1000
+                print(f"   {endpoint:<20}")
+                print(f"      Average: {avg_ms:>8.2f}ms")
+                print(f"      Maximum: {max_ms:>8.2f}ms")
+                print(f"      Requests: {metrics['count']:>7}")
+            
+            # User Analysis
+            print(f"\n👥 USER ANALYSIS")
+            print(f"   Total unique users: {len(self.users)}")
+            
+            if self.users_by_year:
+                print(f"   Users by year:")
+                for year in sorted(self.users_by_year.keys(), reverse=True):
+                    print(f"      {year}: {self.users_by_year[year]} users")
+            
+            # Timetable Generation Insights
+            print(f"\n📅 TIMETABLE GENERATION INSIGHTS")
+            
+            total_timetables = sum(self.timetables_generated)
+            num_generations = len(self.timetables_generated)
+            
+            print(f"   Total timetables generated: {total_timetables}")
+            
+            if num_generations > 0:
+                avg_timetables = total_timetables / num_generations
+                print(f"   Average timetables per generation: {avg_timetables:.2f}")
+                print(f"   Number of generation requests: {num_generations}")
+            
+            print(f"\n🔧 ALGORITHM USAGE")
+            if self.algorithms_used:
+                # Sort algorithms by usage count (descending)
+                sorted_algorithms = sorted(self.algorithms_used.items(), key=lambda x: x[1], reverse=True)
+                for algorithm, count in sorted_algorithms:
+                    print(f"   {algorithm}: {count} times")
+            else:
+                print("   No algorithm usage found in logs")
+            
+            # Additional insights
+            print(f"\n📈 ADDITIONAL INSIGHTS")
+            
+            if self.generation_logs:
+                found_counts = [log['found'] for log in self.generation_logs]
+                avg_found = sum(found_counts) / len(found_counts)
+                print(f"   Average timetables found per generation: {avg_found:.2f}")
+                print(f"   Maximum timetables found in single generation: {max(found_counts)}")
+                print(f"   Minimum timetables found in single generation: {min(found_counts)}")
+            
+            print("\n" + "="*60)
 
+def main():
+    parser = argparse.ArgumentParser(description='Analyze timetable generator log files')
+    parser.add_argument('logfile', help='Path to the log file')
+    parser.add_argument('--endpoints', action='store_true', help='Show only endpoint popularity')
+    parser.add_argument('--performance', action='store_true', help='Show only performance metrics')
+    parser.add_argument('--users', action='store_true', help='Show only user statistics')
+    parser.add_argument('--timetables', action='store_true', help='Show only timetable generation stats')
+    parser.add_argument('--all', action='store_true', help='Show complete report (default)')
+    
+    args = parser.parse_args()
+    
+    # Create analyzer instance
+    analyzer = LogAnalyzer()
+    
+    # Parse the log file
+    if not analyzer.parse_log_file(args.logfile):
+        return 1
+    
+    # Generate reports based on flags
+    if args.endpoints:
+        print("\n🎯 ENDPOINT POPULARITY")
+        sorted_endpoints = sorted(analyzer.endpoints.items(), key=lambda x: x[1], reverse=True)
+        for endpoint, count in sorted_endpoints:
+            print(f"   {endpoint:<20} {count:>4} requests")
+    
+    elif args.performance:
+        print("\n⚡ PERFORMANCE METRICS")
+        performance = analyzer.analyze_performance()
+        for endpoint in sorted(performance.keys()):
+            metrics = performance[endpoint]
+            avg_ms = metrics['avg_response_time_us'] / 1000
+            max_ms = metrics['max_response_time_us'] / 1000
+            print(f"   {endpoint:<20}")
+            print(f"      Average: {avg_ms:>8.2f}ms")
+            print(f"      Maximum: {max_ms:>8.2f}ms")
+    
+    elif args.users:
+        print("\n👥 USER ANALYSIS")
+        print(f"   Total unique users: {len(analyzer.users)}")
+        if analyzer.users_by_year:
+            print(f"   Users by year:")
+            for year in sorted(analyzer.users_by_year.keys(), reverse=True):
+                print(f"      {year}: {analyzer.users_by_year[year]} users")
+    
+    elif args.timetables:
+        print("\n📅 TIMETABLE GENERATION INSIGHTS")
+        total_timetables = sum(analyzer.timetables_generated)
+        num_generations = len(analyzer.timetables_generated)
+        print(f"   Total timetables generated: {total_timetables}")
+        if num_generations > 0:
+            avg_timetables = total_timetables / num_generations
+            print(f"   Average timetables per generation: {avg_timetables:.2f}")
+    
+    else:
+        # Show complete report by default
+        analyzer.generate_report()
+
+if __name__ == "__main__":
+    exit(main())
